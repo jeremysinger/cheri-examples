@@ -14,7 +14,9 @@
  * and intrinsics for bound reporting.
  */
 
-void init_alloc(int size_in_bytes);
+void init_alloc(int num_chunks, int chunk_size);
 
 char *alloc_chunk(); /* simplest malloc */
                    /* free_chunk()  to follow ... */
+
+int num_used_chunks();  /* count of used memory */
