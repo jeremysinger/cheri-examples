@@ -86,7 +86,7 @@ char *alloc_chunk()
 	// return the corresponding chunk
 	// (setting its capability bounds)
 	int i = 0;
-	printf("alloc_chunk()\n");
+	// printf("alloc_chunk()\n");
 	while (bitmap[i] == (char)0xff) {
 	  i++;
 	  if (i>=bitmap_size)
@@ -94,7 +94,7 @@ char *alloc_chunk()
 	}
 	// do we have a 0?
 	if (i < bitmap_size && bitmap[i] != (char)0xff) {
-	  printf("looking for j bit set to 1...\n");
+	  // printf("looking for j bit set to 1...\n");
 	  // find the lowest 0 ...
 	  int j = 0;
 	  // right shift until bottom bit is 0
@@ -104,24 +104,36 @@ char *alloc_chunk()
 	      break;
 	    }
 	  }
-	  printf("j is %d\n", j);
+	  // printf("j is %d\n", j);
 	  // ok - so now i is the word, j is the bit
 	  // set this bit to 1 ...
 	  // and work out the chunk to allocate
 	  updated_byte = bitmap[i] + (char)(1<<j);
 	  bitmap[i] = updated_byte;
-	  printf("new bitmap entry %d at %d", bitmap[i], i);
+	  // printf("new bitmap entry %d at %d", bitmap[i], i);
 	  chunk_index = i*BITS_PER_BYTE + j;
 	  chunk = buffer + (chunk_index * bytes_per_chunk);
 	  /* restrict capability range before returning ptr */
 	  /// chunk = cheri_bounds_set_exact(chunk, BYTES_PER_CHUNK);
 	  // FIXME - what if this is not representable?
 	}
-	else {
-	  printf("no room to alloc: i is %d\n bitmap_size is %d, bitmap[i] & 0xff is %d\n", i, bitmap_size, bitmap[i]&0xff);
-	}
+	//else {
+ 	//   printf("no room to alloc: i is %d\n bitmap_size is %d, bitmap[i] & 0xff is %d\n", i, bitmap_size, bitmap[i]&0xff);
+	//}
 	
 	return chunk;
+}
+
+void free_chunk(char *chunk) {
+  // work out chunk index in buffer
+  int chunk_index = (chunk - buffer) / bytes_per_chunk;
+  // work out equivalent bitmap index
+  int bitmap_index = chunk_index / BITS_PER_BYTE;
+  int bitmap_offset = chunk_index & 0x7;  //how to fix this up!?
+  // set this bitmap value to 0
+  char updated_byte = bitmap[bitmap_index] & (char)(~(1<<bitmap_offset));
+  bitmap[bitmap_index] = updated_byte;
+  return;
 }
 
 
