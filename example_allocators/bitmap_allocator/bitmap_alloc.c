@@ -68,6 +68,11 @@ void init_alloc(int num_chunks, int chunk_size)
 	for (i=0; i < bitmap_size; i++) {
 	  bitmap[i] = 0;
 	}
+
+
+	// CHERI - check buffer and bitmap are properly aligned - - if not then fix them up ...
+	// CHERI - check each chunk is representable in CHERI - if not then adjust chunk size???? - then adjust bitmap size????
+	// CHERI - set exact bounds for buffer and bitmap
 	
 	return;
 }
@@ -120,6 +125,8 @@ char *alloc_chunk()
 	//else {
  	//   printf("no room to alloc: i is %d\n bitmap_size is %d, bitmap[i] & 0xff is %d\n", i, bitmap_size, bitmap[i]&0xff);
 	//}
+
+	// CHERI set bounds for chunk
 	
 	return chunk;
 }
