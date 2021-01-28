@@ -140,7 +140,7 @@ void free_chunk(char *chunk) {
   int chunk_index = (chunk - buffer) / bytes_per_chunk;
   // work out equivalent bitmap index
   int bitmap_index = chunk_index / BITS_PER_BYTE;
-  int bitmap_offset = chunk_index & 0x7;  //how to fix this up!?
+  int bitmap_offset = chunk_index % BITS_PER_BYTE;
   // set this bitmap value to 0
   char updated_byte = bitmap[bitmap_index] & (char)(~(1<<bitmap_offset));
   bitmap[bitmap_index] = updated_byte;
