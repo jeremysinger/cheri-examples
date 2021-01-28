@@ -4,22 +4,24 @@
  *
  * This is a simple fixed-size bitmap allocator.
  * It mmaps a large buffer of
- * CHUNK_SIZE * NUM_CHUNKS bytes
+ * NUM_CHUNKS * CHUNK_SIZE bytes
  * then allocates this space in equally-sized
  * chunks to client code. 
- * The bitmap is used to keep track of which
+ * A side bitmap is required to keep track of which
  * chunks are in use (corresponding bit set to 1)
  * and which chunks are free (corresponding bit
- * set to 0).
+ * set to 0). There is one bit per allocatable chunk.
  * 
  * This is _not_ a clever allocator, since it 
  * does a linear scan of the bitmap to find the 
- * first free chunk - which is expensive!
+ * first free chunk, which is expensive!
+ * More efficient scans could be easily incorporated.
  *
  * This is an initial simple memory allocator test
  * for CHERI / Capable VMs.
- * We explore capability narrowing operations
- * and intrinsics for bound reporting.
+ * We explore capability alignment, 
+ * representable bounds, narrowing operations
+ * and compiler intrinsic support.
  */
 
 // #include <cheriintrin.h>
@@ -42,6 +44,9 @@ int bytes_per_chunk = 0; /* size of single chunk (in bytes) */
 void init_alloc(int num_chunks, int chunk_size)
 {
         int i = 0;
+
+	// FIXME - grow chunk size so it is CHERI aligned...
+	
 	/* request memory for our allocation buffer */
 	char *res = mmap(NULL, num_chunks*chunk_size, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
 	/* request memory for our bitmap */
@@ -56,10 +61,9 @@ void init_alloc(int num_chunks, int chunk_size)
 	}
 
 	/* NB mmap min bounds for capability is 1 page (4K) */
-	// if (DEBUG_PRINTF)
-	//	inspect_pointer(res);
 
 	buffer = res;
+	// FIXME assert buffer is aligned 
 	bytes_per_chunk = chunk_size;
 	buffer_size = num_chunks * chunk_size;
 	bitmap_size = num_chunks/BITS_PER_BYTE;
