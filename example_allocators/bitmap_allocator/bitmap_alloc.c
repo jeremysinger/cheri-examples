@@ -25,6 +25,7 @@
  */
 
 // #include <cheriintrin.h>
+#include <assert.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,14 +46,27 @@ void init_alloc(int num_chunks, int chunk_size)
 {
         int i = 0;
 
-	// FIXME - grow chunk size so it is CHERI aligned...
+	/* do we need to increase the num_chunks
+	 * so every bit in bitmap will be used?
+	 */
+	int adjusted_num_chunks =
+	  (num_chunks%BITS_PER_BYTE==0)?
+	  num_chunks:
+	  (num_chunks + (BITS_PER_BYTE-(num_chunks%BITS_PER_BYTE)));
 	
+	/* do we need to increase the chunk_size
+	 * so chunks will be CHERI aligned?
+	 * (i.e. 16 bytes for a 64-bit architecture)
+	 */
+	int adjusted_chunk_size =
+	  (chunk_size%(sizeof(void *)) == 0)?
+	  chunk_size:
+	  (chunk_size + (sizeof(void *))-(chunk_size%(sizeof(void *))));
+
 	/* request memory for our allocation buffer */
-	char *res = mmap(NULL, num_chunks*chunk_size, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+	char *res = mmap(NULL, adjusted_num_chunks*adjusted_chunk_size, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
 	/* request memory for our bitmap */
-	// one bit per chunk
-	// FIXME - rounding with DIV???
-	bitmap = mmap(NULL, num_chunks/BITS_PER_BYTE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+	bitmap = mmap(NULL, adjusted_num_chunks/BITS_PER_BYTE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
 
 	if (res == MAP_FAILED || bitmap == MAP_FAILED)
 	{
@@ -63,20 +77,22 @@ void init_alloc(int num_chunks, int chunk_size)
 	/* NB mmap min bounds for capability is 1 page (4K) */
 
 	buffer = res;
-	// FIXME assert buffer is aligned 
-	bytes_per_chunk = chunk_size;
-	buffer_size = num_chunks * chunk_size;
-	bitmap_size = num_chunks/BITS_PER_BYTE;
+	/* check buffer is aligned */
+	assert((uintptr_t)buffer % sizeof(void *) == 0);
+	/* check bitmap is aligned */
+	assert((uintptr_t)bitmap % sizeof(void *) == 0);
 	
-	// zero out bitmap - all chunks free
+	bytes_per_chunk = adjusted_chunk_size;
+	buffer_size = adjusted_num_chunks * adjusted_chunk_size;
+	bitmap_size = adjusted_num_chunks/BITS_PER_BYTE;
+	
+	/* zero bitmap, since all chunks are free initially */
 	for (i=0; i < bitmap_size; i++) {
 	  bitmap[i] = 0;
 	}
 
-
-	// CHERI - check buffer and bitmap are properly aligned - - if not then fix them up ...
-	// CHERI - check each chunk is representable in CHERI - if not then adjust chunk size???? - then adjust bitmap size????
-	// CHERI - set exact bounds for buffer and bitmap
+	// FIXME - should we use CHERI API to
+	// set exact bounds for buffer and bitmap?
 	
 	return;
 }
