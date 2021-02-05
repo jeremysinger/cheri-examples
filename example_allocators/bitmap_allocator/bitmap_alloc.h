@@ -13,6 +13,6 @@
 void init_alloc(int num_chunks, int chunk_size);
 
 char *alloc_chunk(); /* simplest malloc */
-void free_chunk(char *chunk); /* simplest free */
+void free_chunk(void *chunk); /* simplest free */
 
 int num_used_chunks();  /* count of used memory */

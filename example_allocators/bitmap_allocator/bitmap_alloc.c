@@ -33,6 +33,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <sys/mman.h>
 
@@ -157,9 +158,9 @@ char *alloc_chunk()
 }
 
 
-void free_chunk(char *chunk) {
+void free_chunk(void *chunk) {
   /* calculate chunk index in buffer */
-  int chunk_index = (chunk - buffer) / bytes_per_chunk;
+  int chunk_index = ((char *)chunk - buffer) / bytes_per_chunk;
   /* calculate corresponding bitmap index */
   int bitmap_index = chunk_index / BITS_PER_BYTE;
   int bitmap_offset = chunk_index % BITS_PER_BYTE;

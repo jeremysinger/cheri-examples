@@ -8,6 +8,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "bitmap_alloc.h"
 // #include "include/common.h"
@@ -37,7 +38,7 @@ int main()
 	  /* now try to do some allocations */
 	  for (i = 0; i < n; i++)
 	  {
-		list *tmp = (int *)alloc_chunk();
+		list *tmp = (list *)alloc_chunk();
 		if (tmp) {
 		  tmp->payload = i;
 		  tmp->next = l;
