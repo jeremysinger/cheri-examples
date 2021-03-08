@@ -156,7 +156,6 @@ char *alloc_chunk()
 
 		/* restrict capability range before returning ptr */
 		chunk = cheri_setbounds(chunk, bytes_per_chunk);
-		char *nchunk = chunk+8;
 	}
 
 	return chunk;
