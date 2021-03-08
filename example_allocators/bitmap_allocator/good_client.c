@@ -9,6 +9,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <cheri/cheric.h>
 
 #include "bitmap_alloc.h"
 // #include "include/common.h"
@@ -34,7 +36,6 @@ int main()
 	list *l = NULL;
 
 	init_alloc(NUM_CELLS, sizeof(list));
-
 	while (n <= NUM_CELLS)
 	{
 

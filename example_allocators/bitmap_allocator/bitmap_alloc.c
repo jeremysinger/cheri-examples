@@ -36,6 +36,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <cheriintrin.h>
+#include <cheri/cheric.h>
 
 #include "bitmap_alloc.h"
 
@@ -68,11 +70,10 @@ void init_alloc(int num_chunks, int chunk_size)
 			? chunk_size
 			: (chunk_size + (sizeof(void *)) - (chunk_size % (sizeof(void *))));
 
-	/* check this chunk size is small enough
-	 * so we can represent bounds precisely with
-	 * CHERI compressed representation
+	/* check this chunk size is small enough so we can represent
+	 * bounds precisely with CHERI compressed representation
 	 */
-	// FIXME
+	adjusted_chunk_size = cheri_representable_length(adjusted_chunk_size);
 
 	/* request memory for our allocation buffer */
 	char *res = mmap(NULL, adjusted_num_chunks * adjusted_chunk_size, PROT_READ | PROT_WRITE,
@@ -88,7 +89,6 @@ void init_alloc(int num_chunks, int chunk_size)
 	}
 
 	/* NB mmap min bounds for capability is 1 page (4K) */
-
 	buffer = res;
 	/* check buffer is aligned */
 	assert((uintptr_t)buffer % sizeof(void *) == 0);
@@ -105,9 +105,9 @@ void init_alloc(int num_chunks, int chunk_size)
 		bitmap[i] = 0;
 	}
 
-	// FIXME - should we use CHERI API to
 	// set exact bounds for buffer and bitmap?
-
+	buffer = cheri_setbounds( buffer, buffer_size );
+	bitmap = cheri_setbounds( bitmap, bitmap_size );
 	return;
 }
 
@@ -137,7 +137,7 @@ char *alloc_chunk()
 		// find the lowest 0 ...
 		int j = 0;
 		// right shift until bottom bit is 0
-		for (j = 0; j < 8; j++)
+		for (j = 0; j < BITS_PER_BYTE; j++)
 		{
 			int bit = (bitmap[i] >> j) & 1;
 			if (bit == 0)
@@ -152,23 +152,25 @@ char *alloc_chunk()
 		bitmap[i] = updated_byte;
 
 		chunk_index = i * BITS_PER_BYTE + j;
-		chunk = buffer + (chunk_index * bytes_per_chunk);
-		/* restrict capability range before returning ptr */
-		/// chunk = cheri_bounds_set_exact(chunk, BYTES_PER_CHUNK);
-		// FIXME - what if this is not representable?
-	}
+		chunk = buffer + (chunk_index * bytes_per_chunk); 
 
-	// CHERI set bounds for chunk
+		/* restrict capability range before returning ptr */
+		chunk = cheri_setbounds(chunk, bytes_per_chunk);
+		char *nchunk = chunk+8;
+	}
 
 	return chunk;
 }
 
 void free_chunk(void *chunk)
 {
+	void *base =  cheri_getbase(chunk);
 	/* calculate chunk index in buffer */
-	int chunk_index = ((char *)chunk - buffer) / bytes_per_chunk;
+	int chunk_index = ((char *)base - buffer) / bytes_per_chunk;
+	assert(chunk_index >= 0);
 	/* calculate corresponding bitmap index */
 	int bitmap_index = chunk_index / BITS_PER_BYTE;
+	assert(bitmap_index < bitmap_size);
 	int bitmap_offset = chunk_index % BITS_PER_BYTE;
 	/* set this bitmap entry to 0 */
 	unsigned char updated_byte = bitmap[bitmap_index] & (unsigned char)(~(1 << bitmap_offset));
